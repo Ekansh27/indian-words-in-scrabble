@@ -369,8 +369,8 @@
         // Load words from files
         useEffect(() => {
             Promise.all([
-                fetch('indian_words.txt').then(r => r.text()),
-                fetch('all_words.txt').then(r => r.text())
+                fetch('/indian_words.txt').then(r => r.text()),
+                fetch('/all_words.txt').then(r => r.text())
             ]).then(([indianData, allData]) => {
                 // Parse Indian words
                 const lines = indianData.split('\n').filter(line => line.trim());
