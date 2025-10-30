@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hindi/Indian Scrabble Word Trainer</title>
+    <title>The Tiles of India</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -31,6 +31,7 @@
             max-width: 700px;
             width: 100%;
             padding: 40px;
+            min-height: 650px;
         }
 
         h1 {
@@ -184,6 +185,11 @@
             border-color: #f44336;
             background: #ffebee;
             animation: shake 0.5s;
+        }
+
+        .answer-input.valid-not-indian {
+            border-color: #fbc02d;
+            background: #fff9c4;
         }
 
         @keyframes shake {
@@ -368,9 +374,10 @@
 
         // Load words from files
         useEffect(() => {
+            const timestamp = new Date().getTime(); 
             Promise.all([
-                fetch('/indian_words.txt').then(r => r.text()),
-                fetch('/all_words.txt').then(r => r.text())
+                fetch('/indian_words.txt?v=' + timestamp).then(r => r.text()),
+                fetch('/all_words.txt?v=' + timestamp).then(r => r.text())
             ]).then(([indianData, allData]) => {
                 // Parse Indian words
                 const lines = indianData.split('\n').filter(line => line.trim());
@@ -383,6 +390,7 @@
                     };
                 }).filter(w => w.word && w.definition);
                 setAllWords(words);
+                console.log('Loaded words:', words.length);
 
                 // Parse all valid Scrabble words
                 const allWordsSet = new Set(
@@ -443,31 +451,31 @@
         };
 
         const loadNewWord = (length) => {
-    // Check if we've exhausted all words FIRST
-    const wordsOfLength = allWords.filter(w => w.length === length);
-    const usedSet = usedWords[length] || new Set();
-    
-    if (usedSet.size >= wordsOfLength.length) {
-        setFeedback({ 
-            type: 'all-done',
-            totalWords: wordsOfLength.length
-        });
-        setCurrentWord(null);
-        return;
-    }
-    
-    const word = getRandomWord(length);
-    setCurrentWord(word);
-    setShuffledLetters(shuffleArray(word.word.split('')));
-    setUserAnswer('');
-    setFeedback(null);
-    
-    // Mark word as used
-    setUsedWords(prev => ({
-        ...prev,
-        [length]: new Set([...(prev[length] || []), word.word])
-    }));
-};
+            // Check if we've exhausted all words FIRST
+            const wordsOfLength = allWords.filter(w => w.length === length);
+            const usedSet = usedWords[length] || new Set();
+            
+            if (usedSet.size >= wordsOfLength.length) {
+                setFeedback({ 
+                    type: 'all-done',
+                    totalWords: wordsOfLength.length
+                });
+                setCurrentWord(null);
+                return;
+            }
+            
+            const word = getRandomWord(length);
+            setCurrentWord(word);
+            setShuffledLetters(shuffleArray(word.word.split('')));
+            setUserAnswer('');
+            setFeedback(null);
+            
+            // Mark word as used
+            setUsedWords(prev => ({
+                ...prev,
+                [length]: new Set([...(prev[length] || []), word.word])
+            }));
+        };
 
         const handleCheck = () => {
             const answer = userAnswer.toUpperCase();
@@ -481,12 +489,10 @@
                 });
                 setStats(prev => ({ ...prev, correct: prev.correct + 1 }));
             } else if (allValidWords.has(answer) && answer.length === currentWord.word.length) {
-                // Valid Scrabble word but not the Indian one
+                // Valid Scrabble word but not the Indian one - FIX #2
                 setFeedback({ 
                     type: 'valid-not-indian',
-                    userWord: answer,
-                    correctWord: currentWord.word,
-                    definition: currentWord.definition
+                    userWord: answer
                 });
             } else {
                 // Completely incorrect
@@ -530,46 +536,44 @@
         }
 
         if (feedback && feedback.type === 'all-done') {
-    return (
-        <div className="container">
-            <button className="back-btn" onClick={handleBackToMenu}>
-                ← Back to Menu
-            </button>
-
-            <h1>🇮🇳 Hindi/Indian Scrabble Trainer</h1>
-            <p className="subtitle">{selectedLength}-letter words</p>
-
-            <div className="feedback all-done">
-                <h3>🎉 You've completed all {feedback.totalWords} words!</h3>
-                <p>Great job! You've seen every {selectedLength}-letter word.</p>
-                <div className="buttons" style={{marginTop: '20px'}}>
-                    <button 
-                        className="btn btn-primary"
-                        onClick={() => {
-                            setUsedWords(prev => ({ ...prev, [selectedLength]: new Set() }));
-                            loadNewWord(selectedLength);
-                        }}
-                    >
-                        Start Over (Same Length)
+            return (
+                <div className="container">
+                    <button className="back-btn" onClick={handleBackToMenu}>
+                        ← Back to Menu
                     </button>
-                    <button 
-                        className="btn btn-secondary"
-                        onClick={handleBackToMenu}
-                    >
-                        Back to Menu
-                    </button>
+
+                    <h1>The Tiles of India</h1>
+                    <p className="subtitle">{selectedLength}-letter words</p>
+
+                    <div className="feedback all-done">
+                        <h3>🎉 You've completed all {feedback.totalWords} words!</h3>
+                        <p>Great job! You've seen every {selectedLength}-letter word.</p>
+                        <div className="buttons" style={{marginTop: '20px'}}>
+                            <button 
+                                className="btn btn-primary"
+                                onClick={() => {
+                                    setUsedWords(prev => ({ ...prev, [selectedLength]: new Set() }));
+                                    loadNewWord(selectedLength);
+                                }}
+                            >
+                                Start Over (Same Length)
+                            </button>
+                            <button 
+                                className="btn btn-secondary"
+                                onClick={handleBackToMenu}
+                            >
+                                Back to Menu
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    );
-}
-
+            );
+        }
 
         if (!gameStarted) {
             return (
                 <div className="container">
-                    <h1>🇮🇳 Hindi/Indian Scrabble Trainer</h1>
-                    <p className="subtitle">Master {allWords.length} Hindi/Indian words for Scrabble</p>
+                    <h1>The Tiles of India</h1>
                     
                     <div className="opening-screen">
                         <h2>Choose word length to practice:</h2>
@@ -596,7 +600,7 @@
                     ← Back to Menu
                 </button>
 
-                <h1>🇮🇳 Hindi/Indian Scrabble Trainer</h1>
+                <h1>The Tiles of India</h1>
                 <p className="subtitle">{selectedLength}-letter words</p>
 
                 <div className="game-screen">
@@ -619,18 +623,26 @@
                             value={userAnswer}
                             onChange={(e) => setUserAnswer(e.target.value)}
                             placeholder="Type your answer..."
-                            disabled={feedback && feedback.type !== 'incorrect'}
+                            disabled={feedback && feedback.type !== 'incorrect' && feedback.type !== 'valid-not-indian'}
                             maxLength={currentWord.word.length}
                             onKeyPress={(e) => {
-                                if (e.key === 'Enter' && userAnswer.length > 0 && (!feedback || feedback.type === 'incorrect')) {
-                                    handleCheck();
+                                if (e.key === 'Enter' && userAnswer.length > 0) {
+                                    // FIX #3: Enter key behavior
+                                    // If no feedback or incorrect/valid-not-indian, check answer
+                                    if (!feedback || feedback.type === 'incorrect' || feedback.type === 'valid-not-indian') {
+                                        handleCheck();
+                                    }
+                                    // If correct or show-answer, go to next word
+                                    else if (feedback.type === 'correct' || feedback.type === 'show-answer') {
+                                        handleNextWord();
+                                    }
                                 }
                             }}
                         />
                     </div>
 
                     <div className="buttons">
-                        {(!feedback || feedback.type === 'incorrect') && (
+                        {(!feedback || feedback.type === 'incorrect' || feedback.type === 'valid-not-indian') && (
                             <>
                                 <button 
                                     className="btn btn-primary"
@@ -648,7 +660,7 @@
                             </>
                         )}
                         
-                        {feedback && feedback.type === 'incorrect' && (
+                        {feedback && (feedback.type === 'incorrect' || feedback.type === 'valid-not-indian') && (
                             <button 
                                 className="btn btn-secondary"
                                 onClick={handleTryAgain}
@@ -657,7 +669,7 @@
                             </button>
                         )}
                         
-                        {feedback && (feedback.type === 'correct' || feedback.type === 'show-answer' || feedback.type === 'valid-not-indian') && (
+                        {feedback && (feedback.type === 'correct' || feedback.type === 'show-answer') && (
                             <button 
                                 className="btn btn-success"
                                 onClick={handleNextWord}
@@ -684,10 +696,8 @@
                             )}
                             {feedback.type === 'valid-not-indian' && (
                                 <>
-                                    <h3>⚠️ Valid Scrabble Word, But Not the Indian One!</h3>
-                                    <p>You guessed: <strong>{feedback.userWord}</strong> (valid)</p>
-                                    <p>The Indian word is: <strong>{feedback.correctWord}</strong></p>
-                                    <div className="definition">{feedback.definition}</div>
+                                    <h3>⚠️ Valid word, but not the Indian one!</h3>
+                                    <p>Your answer: <strong>{feedback.userWord}</strong></p>
                                 </>
                             )}
                             {feedback.type === 'show-answer' && (
